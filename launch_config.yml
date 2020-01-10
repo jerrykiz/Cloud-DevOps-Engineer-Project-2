@@ -23,6 +23,7 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+
   WebServerSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -32,8 +33,8 @@ Resources:
           !Sub "${EnvironmentName}-VPCID"
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
+          FromPort: 80
+          ToPort: 80
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 22
@@ -45,86 +46,127 @@ Resources:
           ToPort: 65535
           CidrIp: 0.0.0.0/0
 
-  # WebAppLaunchConfig:
-  #   Type: AWS::AutoScaling::LaunchConfiguration
-  #   Properties:
-  #     UserData:
-  #       Fn::Base64: !Sub |
-  #       #!/bin/bash
-  #       # Install docker
-  #       apt-get update
-  #       apt-get install -y apt-transport-https ca-certificates curl
-  #       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo
-  #       add-apt-repository \
-  #       "deb [arch="amd64] https://download.docker.com/linux/ubuntu \
-  #       $(lsb_release -cs) \
-  #       stable"
-  #       apt-get update
-  #       apt-get install -y docker-ce
-  #       usermod -aG docker ubuntu
-  #       docker run -p 8080:8080 tomcat:8.0
-  #   ImageId: ami-005bdb005fb00e791
-  #   KeyName: that-one
-  #   SecurityGroups:
-  #       - Ref: WebServerSecGroup
-  #   InstanceType: t3.medium
-  #   BlockDeviceMappings:
-  #       - DeviceName: "/dev/sdk"
-  #         Ebs:
-  #             VolumeSize: '10'
-  # WebAppGroup:
-  #     Type: AWS::AutoScaling::AutoScalingGroup
-  #     Properties:
-  #         VPCZoneIdentifier:
-  #             - Fn::ImportValue:
-  #                 !Sub "${EnvironmentName}-PRIV-NETS"
-  #         LaunchConfigurationName:
-  #             Ref: WebAppLaunchConfig
-  #         MinSize: '3'
-  #         MaxSize: '5'
-  #         TargetGroupArns:
-  #             - Ref: WebAppTargetGroup
-  # WebAppLB:
-  #     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-  #     Properties:
-  #         Subnets:
-  #             - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
-  #             - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
-  #         SecurityGroups:
-  #             - Ref: LBSecGroup
-  # Listener:
-  #     Type: AWS::ElasticLoadBalancingV2::Listener
-  #     Properties:
-  #         DefaultActions:
-  #             - Type: forward
-  #               TargetGroupArn:
-  #                   Ref: WebAppTargetGroup
-  #         LoadBalancerArn:
-  #             Ref: WebAppLB
-  #         Port: '80'
-  #         Protocol: HTTP
-  # ALBListenerRule:
-  #     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-  #     Properties:
-  #         Actions:
-  #             - Type: forward
-  #               TargetGroupArn: !Ref 'WebAppTargetGroup'
-  #         Conditions:
-  #             - Field: path-pattern
-  #               Values: [/]
-  #         ListenerArn: !Ref 'Listener'
-  #         Priority: 1
-  # WebAppTargetGroup:
-  #     Type: AWS::ElasticLoadBalancingV2::WebAppTargetGroup
-  #     Properties:
-  #         HealthCheckIntervalSeconds: 10
-  #         HealthCheckPath: /
-  #         HealthCheckProtocol: HTTP
-  #         HealthCheckTimeoutSeconds: 8
-  #         HealthyThresholdCount: 2
-  #         Port: 8080
-  #         Protocol: HTTP
-  #         UnhealthyThresholdCount: 5
-  #         VpcId:
-  #             Fn::ImportValue:
-  #                 Fn::Sub: "${EnvironmentName}-VPCID"
+  UdacityS3ReadOnlyEC2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+
+  RolePolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: root
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: 
+            - "s3:ListBucket"
+            - "s3:ListAllMyBuckets"
+          Resource: "arn:aws:s3:::*"
+      Roles:
+      - Ref: UdacityS3ReadOnlyEC2
+
+  ProfileWithRolesForOurApp:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: UdacityS3ReadOnlyEC2
+
+  WebAppLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install unzip awscli -y
+          apt-get install apache2 -y
+          systemctl start apache2.service
+          cd /var/www/html
+          aws s3 cp s3://udacity-demo-1/udacity.zip .
+          unzip -o udacity.zip
+      ImageId: ami-04b9e92b5572fa0d1
+      SecurityGroups:
+          - Ref: WebServerSecGroup
+      InstanceType: t3.micro
+      BlockDeviceMappings:
+          - DeviceName: "/dev/sdk"
+            Ebs:
+                VolumeSize: '10'
+
+  WebAppGroup:
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:
+          VPCZoneIdentifier:
+              - Fn::ImportValue:
+                  !Sub "${EnvironmentName}-PRIV-NETS"
+          LaunchConfigurationName: !Ref WebAppLaunchConfig
+          MinSize: '2'
+          MaxSize: '2'
+          TargetGroupArns:
+            - Ref: WebAppTargetGroup
+
+  WebAppLB:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+          Subnets:
+              - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+              - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
+          SecurityGroups:
+              - Ref: LBSecGroup
+
+  Listener:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      Properties:
+          DefaultActions:
+              - Type: forward
+              - TargetGroupArn: !Ref WebAppTargetGroup
+          LoadBalancerArn:
+              Ref: WebAppLB
+          Port: '80'
+          Protocol: HTTP
+
+  ALBListenerRule:
+      Type: AWS::ElasticLoadBalancingV2::ListenerRule
+      Properties:
+          Actions:
+            - Type: forward
+            - TargetGroupArn: !Ref WebAppTargetGroup
+          Conditions:
+              - Field: path-pattern
+                PathPatternConfig:
+                  Values: [/]
+          ListenerArn: !Ref Listener
+          Priority: 1
+
+  WebAppTargetGroup:
+      Type: AWS::ElasticLoadBalancingV2::TargetGroup
+      Properties:
+          HealthCheckIntervalSeconds: 10
+          HealthCheckPath: /
+          HealthCheckProtocol: HTTP
+          HealthCheckTimeoutSeconds: 8
+          HealthyThresholdCount: 2
+          Port: 80
+          Protocol: HTTP
+          UnhealthyThresholdCount: 5
+          VpcId:
+              Fn::ImportValue:
+                  Fn::Sub: "${EnvironmentName}-VPCID"
+
+Outputs:
+  URL: 
+    Description: A reference to the created VPC
+    Value: 
+      Fn::Sub:
+        - "http://${HostedZoneName}"
+        - HostedZoneName: !GetAtt WebAppLB.DNSName
+    Export:
+      Name: !Sub ${EnvironmentName}-DNSName
