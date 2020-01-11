@@ -4,11 +4,15 @@
         "ParameterValue": "UdacityProject"
     },
     {
-        "ParameterKey": "Image-ID",
+        "ParameterKey": "ImageID",
         "ParameterValue": "ami-04b9e92b5572fa0d1"
     },
     {
-        "ParameterKey": "Instance-Type",
+        "ParameterKey": "InstanceType",
         "ParameterValue": "t3.micro"
+    },
+    {
+        "ParameterKey": "EbsVolumeSize",
+        "ParameterValue": 10
     }
 ]

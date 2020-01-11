@@ -8,13 +8,16 @@ Parameters:
   EnvironmentName:
     Description: An environment name that will be prefixed to Resources
     Type: String
-  Image-ID:
+  ImageID:
     Description: The ImageId for the servers
     Type: String
-  Instance-Type:
+  InstanceType:
     Description: The InstanceType of the servers
     Type: String
-
+  EbsVolumeSize:
+    Description: The Volume Size of Ebs
+    Type: Integer
+      
 Resources:
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
@@ -99,15 +102,15 @@ Resources:
           rm index.html
           aws s3 cp s3://jerrykiz-sam-demo/web-app.zip .
           unzip -o web-app.zip
-      ImageId: !Ref Image-ID
+      ImageId: !Ref ImageID
       SecurityGroups:
         - Ref: WebServerSecGroup
-      InstanceType: !Ref Instance-Type
+      InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref ProfileWithRolesForOurApp
       BlockDeviceMappings:
         - DeviceName: "/dev/sdk"
           Ebs:
-              VolumeSize: '10'
+              VolumeSize: !Ref EbsVolumeSize
 
   WebAppGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
