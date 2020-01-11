@@ -101,17 +101,17 @@ Resources:
           Ebs:
               VolumeSize: '10'
 
-  # WebAppGroup:
-  #   Type: AWS::AutoScaling::AutoScalingGroup
-  #   Properties:
-  #     VPCZoneIdentifier:
-  #       - Fn::ImportValue: !Sub ${EnvironmentName}-PRI1-SN
-  #       - Fn::ImportValue: !Sub ${EnvironmentName}-PRI2-SN
-  #     LaunchConfigurationName: !Ref WebAppLaunchConfig
-  #     MinSize: '2'
-  #     MaxSize: '2'
-  #     TargetGroupArn:
-  #       - Ref: WebAppTargetGroup
+  WebAppGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PRI1-SN
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PRI2-SN
+      LaunchConfigurationName: !Ref WebAppLaunchConfig
+      MinSize: '2'
+      MaxSize: '2'
+      TargetGroupArns:
+        - !Ref WebAppTargetGroup
 
   WebAppLB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
