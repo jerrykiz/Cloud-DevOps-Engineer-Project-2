@@ -97,6 +97,7 @@ Resources:
       SecurityGroups:
         - Ref: WebServerSecGroup
       InstanceType: t3.micro
+      IamInstanceProfile: !Ref ProfileWithRolesForOurApp
       BlockDeviceMappings:
         - DeviceName: "/dev/sdk"
           Ebs:
