@@ -90,6 +90,7 @@ Resources:
           apt-get install apache2 -y
           systemctl start apache2.service
           cd /var/www/html
+          rm index.html
           aws s3 cp s3://jerrykiz-sam-demo/web-app.zip .
           unzip -o web-app.zip
       ImageId: ami-04b9e92b5572fa0d1
