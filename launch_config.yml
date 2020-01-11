@@ -51,12 +51,12 @@ Resources:
     Properties:
       AssumeRolePolicyDocument:
         Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ec2.amazonaws.com
-          Action:
-          - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
 
   RolePolicies:
     Type: AWS::IAM::Policy
@@ -64,20 +64,20 @@ Resources:
       PolicyName: root
       PolicyDocument:
         Statement:
-        - Effect: Allow
-          Action: 
-            - "s3:ListBucket"
-            - "s3:ListAllMyBuckets"
-          Resource: "arn:aws:s3:::*"
+          - Effect: Allow
+            Action: 
+              - "s3:ListBucket"
+              - "s3:ListAllMyBuckets"
+            Resource: "arn:aws:s3:::*"
       Roles:
-      - Ref: UdacityS3ReadOnlyEC2
+        - Ref: UdacityS3ReadOnlyEC2
 
   ProfileWithRolesForOurApp:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: "/"
       Roles:
-      - Ref: UdacityS3ReadOnlyEC2
+        - Ref: UdacityS3ReadOnlyEC2
 
   WebAppLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
@@ -94,72 +94,72 @@ Resources:
           unzip -o udacity.zip
       ImageId: ami-04b9e92b5572fa0d1
       SecurityGroups:
-          - Ref: WebServerSecGroup
+        - Ref: WebServerSecGroup
       InstanceType: t3.micro
       BlockDeviceMappings:
-          - DeviceName: "/dev/sdk"
-            Ebs:
-                VolumeSize: '10'
+        - DeviceName: "/dev/sdk"
+          Ebs:
+              VolumeSize: '10'
 
   WebAppGroup:
-      Type: AWS::AutoScaling::AutoScalingGroup
-      Properties:
-          VPCZoneIdentifier:
-              - Fn::ImportValue:
-                  !Sub "${EnvironmentName}-PRIV-NETS"
-          LaunchConfigurationName: !Ref WebAppLaunchConfig
-          MinSize: '2'
-          MaxSize: '2'
-          TargetGroupArns:
-            - Ref: WebAppTargetGroup
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue:
+          !Sub "${EnvironmentName}-PRIV-NETS"
+      LaunchConfigurationName: !Ref WebAppLaunchConfig
+      MinSize: '2'
+      MaxSize: '2'
+      TargetGroupArns:
+        - Ref: WebAppTargetGroup
 
   WebAppLB:
-      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-      Properties:
-          Subnets:
-              - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
-              - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
-          SecurityGroups:
-              - Ref: LBSecGroup
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
+      SecurityGroups:
+        - Ref: LBSecGroup
 
   Listener:
-      Type: AWS::ElasticLoadBalancingV2::Listener
-      Properties:
-          DefaultActions:
-              - Type: forward
-              - TargetGroupArn: !Ref WebAppTargetGroup
-          LoadBalancerArn:
-              Ref: WebAppLB
-          Port: '80'
-          Protocol: HTTP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+        - TargetGroupArn: !Ref WebAppTargetGroup
+      LoadBalancerArn:
+        Ref: WebAppLB
+      Port: '80'
+      Protocol: HTTP
 
   ALBListenerRule:
-      Type: AWS::ElasticLoadBalancingV2::ListenerRule
-      Properties:
-          Actions:
-            - Type: forward
-            - TargetGroupArn: !Ref WebAppTargetGroup
-          Conditions:
-              - Field: path-pattern
-                PathPatternConfig:
-                  Values: [/]
-          ListenerArn: !Ref Listener
-          Priority: 1
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+        - TargetGroupArn: !Ref WebAppTargetGroup
+      Conditions:
+        - Field: path-pattern
+        - PathPatternConfig:
+            Values: 
+              - /
+      ListenerArn: !Ref Listener
+      Priority: 1
 
   WebAppTargetGroup:
-      Type: AWS::ElasticLoadBalancingV2::TargetGroup
-      Properties:
-          HealthCheckIntervalSeconds: 10
-          HealthCheckPath: /
-          HealthCheckProtocol: HTTP
-          HealthCheckTimeoutSeconds: 8
-          HealthyThresholdCount: 2
-          Port: 80
-          Protocol: HTTP
-          UnhealthyThresholdCount: 5
-          VpcId:
-              Fn::ImportValue:
-                  Fn::Sub: "${EnvironmentName}-VPCID"
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 8
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPCID
 
 Outputs:
   URL: 
