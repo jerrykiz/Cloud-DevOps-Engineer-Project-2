@@ -1,2 +1,1 @@
-This is a project edit with git
-adding line
+This is the second project of the course 'Cloud DevOps Engineer'.
