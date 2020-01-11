@@ -91,8 +91,8 @@ Resources:
           systemctl start apache2.service
           cd /var/www/html
           rm index.html
-          aws s3 cp s3://jerrykiz-sam-demo/web-app.zip .
-          unzip -o web-app.zip
+          aws s3 cp s3://udacity-demo-1/udacity.zip .
+          unzip -o udacity.zip
       ImageId: ami-04b9e92b5572fa0d1
       SecurityGroups:
         - Ref: WebServerSecGroup
