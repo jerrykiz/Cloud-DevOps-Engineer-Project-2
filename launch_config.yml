@@ -8,7 +8,13 @@ Parameters:
   EnvironmentName:
     Description: An environment name that will be prefixed to Resources
     Type: String
-    
+  Image-ID:
+    Description: The ImageId for the servers
+    Type: String
+  Instance-Type:
+    Description: The InstanceType of the servers
+    Type: String
+
 Resources:
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
@@ -31,7 +37,7 @@ Resources:
   WebServerSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow http to our hosts and SSH local only
+      GroupDescription: Allow http to the servers (via LoadBalancer)
       VpcId:
         Fn::ImportValue:
           !Sub "${EnvironmentName}-VPCID"
@@ -39,10 +45,6 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: tcp
@@ -97,10 +99,10 @@ Resources:
           rm index.html
           aws s3 cp s3://jerrykiz-sam-demo/web-app.zip .
           unzip -o web-app.zip
-      ImageId: ami-04b9e92b5572fa0d1
+      ImageId: !Ref Image-ID
       SecurityGroups:
         - Ref: WebServerSecGroup
-      InstanceType: t3.micro
+      InstanceType: !Ref Instance-Type
       IamInstanceProfile: !Ref ProfileWithRolesForOurApp
       BlockDeviceMappings:
         - DeviceName: "/dev/sdk"
