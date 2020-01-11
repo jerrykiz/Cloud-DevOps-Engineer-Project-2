@@ -13,6 +13,6 @@
     },
     {
         "ParameterKey": "EbsVolumeSize",
-        "ParameterValue": 10
+        "ParameterValue": "10"
     }
 ]

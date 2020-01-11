@@ -16,7 +16,7 @@ Parameters:
     Type: String
   EbsVolumeSize:
     Description: The Volume Size of Ebs
-    Type: Integer
+    Type: String
       
 Resources:
   LBSecGroup:
