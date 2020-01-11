@@ -4,11 +4,11 @@ Description: >
     an IAM Role with a policy and an InstanceProfile, a Load Balancer with its Listener,
     Listener Rule and Target Group. It exports the URL, which the application can be reached with.
 
-
 Parameters:
   EnvironmentName:
     Description: An environment name that will be prefixed to Resources
     Type: String
+    
 Resources:
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
